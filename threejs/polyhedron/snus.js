@@ -1,110 +1,112 @@
 import { PolyhedronGeometry } from "three";
-import * as THREE from 'three';
+import * as THREE from "three";
+import map from "./map.js";
 
+const RADIUS = 1;
+const INITAL_SPEED = 0.05;
 
 export class Snus extends THREE.Mesh {
   constructor() {
-    const vertices = [
-        // Top circle vertices
-        1, 0, 0.1, 0.707, 0.707, 0.1, 0, 1, 0.1, -0.707, 0.707, 0.1, -1, 0, 0.1,
-        -0.707, -0.707, 0.1, 0, -1, 0.1, 0.707, -0.707, 0.1,
-        // Bottom circle vertices
-        1, 0, -0.1, 0.707, 0.707, -0.1, 0, 1, -0.1, -0.707, 0.707, -0.1, -1, 0,
-        -0.1, -0.707, -0.707, -0.1, 0, -1, -0.1, 0.707, -0.707, -0.1,
-      ];
-  
-      // Define faces of the thin cylinder
-      const indices = [
-        // Top circle faces
-        0, 1, 2, 0, 2, 3, 0, 3, 4, 0, 4, 5, 0, 5, 6, 0, 6, 7, 0, 7, 1,
-        // Bottom circle faces
-        8, 9, 10, 8, 10, 11, 8, 11, 12, 8, 12, 13, 8, 13, 14, 8, 14, 15, 8, 15, 9,
-        // Side faces
-        0, 1, 9, 0, 9, 8, 1, 2, 10, 1, 10, 9, 2, 3, 11, 2, 11, 10, 3, 4, 12, 3,
-        12, 11, 4, 5, 13, 4, 13, 12, 5, 6, 14, 5, 14, 13, 6, 7, 15, 6, 15, 14, 7,
-        0, 8, 7, 8, 15,
-      ];
-    const geometry = new PolyhedronGeometry(vertices, indices, 1, 0);
+    const geometry = new THREE.CylinderGeometry( RADIUS, RADIUS, 1, 32 ); 
 
     const material = new THREE.MeshStandardMaterial({
-      color: 0x00ff00,
-      flatShading: true
+      color: 0xffffff,
+
+      flatShading: true,
     });
 
     super(geometry, material);
-    this.velocity = new THREE.Vector3(0, 0, 0);
-    // add listeners
-    window.addEventListener('keydown', (event) => this.onKeyDown(event));
-    window.addEventListener('keyup', (event) => this.onKeyUp(event));
+
+    // Movement Properties
+    this.speed = INITAL_SPEED; // Adjust as needed
+    this.turnSpeed = 0.02; // Adjust as needed
+    this.isMovingForward = true;
+    this.isTurningLeft = false;
+    this.isTurningRight = false;
+
+
+    this.isJumping = false;
+    this.velocity = new THREE.Vector3();
+    this.gravity = 0.01; // Adjust as needed
+    // add listeners (unchanged from your code)
+    window.addEventListener("keydown", (event) => this.onKeyDown(event));
+    window.addEventListener("keyup", (event) => this.onKeyUp(event));
+
+    this.rotation.z = Math.PI / 2;
   }
 
-  jump() {
-    this.velocity.y = 0.2;
+  onKeyDown(event) {
+    switch (event.key.toLowerCase()) {
+      case "w":
+      case "arrowup":
+        this.isMovingForward = true;
+        break;
+      case "a":
+      case "arrowleft":
+        this.isTurningLeft = true;
+        break;
+      case "d":
+      case "arrowright":
+        this.isTurningRight = true;
+        break;
+    }
   }
-
-  updateJump() {
-    this.position.y += this.velocity.y;
-    if (this.position.y < 0) {
-      // decrease the velocity
-      this.velocity.y -= 0.01;
-    } else {
-        this.position.y = 0;
-        this.velocity.y = 0;
+  onKeyUp(event) {
+    switch (event.key.toLowerCase()) {
+      case "w":
+      case "arrowup":
+        // increase speed here?
+        this.isMovingForward = true; // REMOVE THIS LINE
+        break;
+      case "a":
+      case "arrowleft":
+        this.isTurningLeft = false;
+        break;
+      case "d":
+      case "arrowright":
+        this.isTurningRight = false;
+        break;
+      case "s":
+        case "arrowdown":
+            this.isMovingForward = false;
+            break;
+      case " ": // Handle spacebar for jumping
+        if (!this.isJumping) {
+          console.log("Jumping");
+          this.isJumping = true;
+          this.velocity.y = 0.3; 
+          this.speed += 0.1; 
+        }
+        break; // Important: Add a break statement for the spacebar case
     }
-    console.log(this.position.y);
+  }
+  update() {
+    const height = map.getCollisionHeight(this.position.x, this.position.z) + RADIUS;
+    console.log(height);
+    if (height && !this.isJumping) {
+      this.position.y = height;
     }
+    if (this.isMovingForward) {
+      this.position.z += this.speed;
+    }
+    if (this.isTurningLeft) {
 
-    update() {
-        this.updateJump();
+    }
+    if (this.isTurningRight) {
+        this.rotateY(-0.1);
+    }
+    if (this.isJumping) {
+        // Apply gravity and update velocity
+        this.velocity.y -= this.gravity; 
         this.position.add(this.velocity);
-    }
-
-    moveLeft() {
-        this.velocity.x = -0.1;
-    }
-
-    moveRight() {
-        this.velocity.x = 0.1;
-    }
-
-    moveForward() {
-        this.velocity.z = -0.1;
-    }
-
-    moveBackward() {
-        this.velocity.z = 0.1;
-    }
-
-    onKeyDown(event) {
-        switch (event.key) {
-            case 'w':
-                this.moveForward();
-                break;
-            case 's':
-                this.moveBackward();
-                break;
-            case 'a':
-                this.moveLeft();
-                break;
-            case 'd':
-                this.moveRight();
-                break;
-            case ' ':
-                this.jump();
-                break;
+  
+        // Check if the object is back on the "ground"
+        if (this.position.y <= 0) {
+          this.position.y = 0; // Reset position
+          this.velocity.y = 0;  // Reset velocity
+          this.speed = INITAL_SPEED; // Reset speed
+          this.isJumping = false;
         }
-    }
-
-    onKeyUp(event) {
-        switch (event.key) {
-            case 'w':
-            case 's':
-                this.velocity.z = 0;
-                break;
-            case 'a':
-            case 'd':
-                this.velocity.x = 0;
-                break;
-        }
-    }
+      }
+  }
 }

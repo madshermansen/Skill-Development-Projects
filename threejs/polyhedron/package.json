@@ -1,6 +1,10 @@
 {
+  "scripts": {
+    "dev": "vite"
+  },
   "dependencies": {
     "perlin-noise": "^0.0.1",
+    "simplex-noise": "^4.0.2",
     "three": "^0.166.1"
   },
   "devDependencies": {
