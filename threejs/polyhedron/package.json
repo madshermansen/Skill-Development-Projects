@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "perlin-noise": "^0.0.1",
     "three": "^0.166.1"
   },
   "devDependencies": {
